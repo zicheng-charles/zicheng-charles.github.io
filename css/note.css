@@ -1,5 +1,117 @@
-.content {
-    height: 1000px;
+#cat {
+    position: fixed;
+    z-index: -11;
+    right: 0px;
+    top: 300px;
+}
+
+#main_content {
+    padding-left: 40px;
+    padding-right: 40px;
+    position: relative;
     width: 100%;
-    background-image: url(../image/background.jfif);
+    min-width: 600px;
+    min-height: 960px;
+    height: 100%;
+    white-space: normal;
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+.notelist {
+    float: left;
+    border-radius: 2px;
+    background-color: rgba(211, 211, 211, 0);
+    margin-bottom: 20px;
+    width: 100%;
+    min-width: 600px;
+    height: 200px;
+}
+
+.noteimg {
+    position: absolute;
+    margin: 20px;
+    width: 180px;
+    height: 160px;
+}
+
+.noteimg img {
+    border-radius: 2px;
+}
+
+.notecon {
+    position: absolute;
+    margin: 20px;
+    left: 240px;
+    width: 60%;
+    height: 100%;
+    min-width: 280px;
+    max-height: 160px;
+}
+
+.notecon_head {
+    position: absolute;
+    width: auto;
+    height: 30%;
+    top: 0px;
+    max-height: 48px;
+}
+
+.notecon_head b {
+    font-size: 20px;
+}
+
+.notecon_abstract {
+    position: absolute;
+    width: auto;
+    top: 30%;
+    height: 50%;
+    max-height: 80px;
+}
+
+.notecon_foot {
+    position: absolute;
+    bottom: 0px;
+    width: auto;
+    height: 20%;
+    max-height: 32px;
+}
+
+.notecon_foot a {
+    font-size: 6px;
+    color: rgba(133, 130, 130, 0.932);
+}
+
+#main_content blockquote {
+    display: block;
+    border-left: 8px solid #d0e5f2;
+    padding: 5px 10px;
+    margin: 10px 0;
+    line-height: 1.4;
+    font-size: 100%;
+    background-color: #f1f1f1;
+}
+
+
+/* code 样式 */
+
+#main_content code {
+    display: inline-block;
+    *display: inline;
+    *zoom: 1;
+    background-color: #f1f1f1;
+    border-radius: 3px;
+    padding: 3px 5px;
+    margin: 0 3px;
+}
+
+#main_content pre code {
+    display: block;
+}
+
+
+/* ul ol 样式 */
+
+#main_content ul,
+ol {
+    margin: 10px 0 10px 20px;
 }
