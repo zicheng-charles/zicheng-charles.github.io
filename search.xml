@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>latent-GLAT:Glancing at Latent Variables for Parallel Text Generation</title>
+    <url>/2024/06/01/latent-GLAT/</url>
+    <content><![CDATA[<h1 id="文献信息"><a href="#文献信息" class="headerlink" title="文献信息"></a>文献信息</h1><ul>
+<li><strong>中文名字：</strong> Latent-Glat：对并行文本生成的潜在变量进行了研究</li>
+<li><strong>文献作者：</strong> Yu Bao; Hao Zhou; Shujian Huang; Dongqi Wang; Lihua Qian; Xinyu Dai; Jiajun Chen; Lei Li</li>
+<li><strong>发布时间：</strong> 2022</li>
+<li><strong>DOI：</strong> <a href="https://doi.org/10.18653/v1/2022.acl-long.575">10.18653&#x2F;v1&#x2F;2022.acl-long.575</a></li>
+<li><strong>发布于：</strong> Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)</li>
+</ul>
+<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>现有的非自回归Transformer模型（Non-Autoregressive Transformer, NAT）在翻译任务中取得了比自回归模型有竞争力的结果，但它们仍然需要自回归Transformer(Autoregressive Transformer, AT)作为教师进行训练，即序列级知识蒸馏。</p>
+<p>对这种现象公认的解释是多模态问题：每个输入在数据集中可能有多个有效输出，这将阻止NAT模型学习组织一致的输出。使用AT的输出进行训练可以直接绕过数据集中的多模态现象，有效提高模型的性能。然而，通过知识蒸馏来训练NAT模型是有限的。</p>
+<ul>
+<li>首先，它需要额外训练一个AT模型，这不可避免地扩大了训练成本。</li>
+<li>其次，很难保证教师(或AT)模型在所有文本生成设置中都能足够准确，这将成为学生NAT模型的瓶颈。</li>
+</ul>
+<h1 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h1><p>在本文中，作者提出了Latent-GLAT，它可以直接从原始数据集中学习，它借助”分而治之”的思想缓解了多模态问题，通过引入少量离散潜变量来捕获目标词类别信息，将原目标分为潜变量建模和句子重构。</p>
+<ul>
+<li>首先，类别信息可能比原始单词具有更少的多模态现象，因此可以不借助知识蒸馏直接学习。</li>
+<li>第二，词的类别信息对句子重构具有信息性。我们可以用这些离散的潜变量扩展扫视训练来对句子进行建模，鼓励模型建立对单词分类信息而不是单词的依赖关系，这更加稳健。</li>
+</ul>
+<h1 id="模型"><a href="#模型" class="headerlink" title="模型"></a>模型</h1><p>Latent-GLAT遵循Latent Transformer模型，但引入离散潜变量的Glancing训练。</p>
+<h2 id="引入离散潜变量对目标类别信息进行建模"><a href="#引入离散潜变量对目标类别信息进行建模" class="headerlink" title="引入离散潜变量对目标类别信息进行建模"></a>引入离散潜变量对目标类别信息进行建模</h2><p>设K为离散隐空间的大小，$[K]$表示集合${ 1,2,· · ·,K }$。对于每个目标句$Y &#x3D; ( y_1 , y_2 , · · · , y_m)$，我们使用一个相同长度的潜变量序列对其建模为:</p>
+<p>$$<br>p(Y|X)&#x3D;\sum_z p_{\theta}(z|X) \cdot \prod_{t&#x3D;1}^m p_{\theta}(y_t|z,X)<br>$$</p>
+<p>其中$z&#x3D;(z_1,z_2,· · ·,z_m)$,且$z_i\epsilon[K]$，$\theta$是模型参数。</p>
+<p>使用向量量化将目标句子离散化为潜变量，它通过将大量的原始向量表示划分为小的组来工作。给每个令牌$y_i$分配一个与它的表示距离最近的组$j\epsilon[k]$：</p>
+<p>$$z_i&#x3D;\underset{j \epsilon [k]}{argmin}||repr(y_i)-q_j||_2$$</p>
+<p>其中$q\epsilon R^{k \times d_{model}}$ ，$q$是maintained表示，$d_{model}$是它的维度。使用$repr(y_i)$作为$y_i$的嵌入表示。最后，对模型进行最小化训练。</p>
+<p>$$<br>L_{LT}&#x3D;L_{LP}+L_{wp}<br>$$</p>
+<p>其中，$L_{wp}$和$L_{Lp}$分别为单词$Y$和潜变量$z$的预测损失。</p>
+<p>maintained表示$q$在目标$tokens { y1，· · ·，yi，· · · } $的小批量数据上进行指数移动平均更新。</p>
+<p>$$<br>c_j \leftarrow \lambda_{c_j}+(1-\lambda)\sum_i 1[z_i&#x3D;j],\\<br>q_j \leftarrow \lambda_{q_j}+(1-\lambda)\sum_i \frac{1[z_i&#x3D;j]repr(y_i)}{c_j}<br>$$</p>
+<p>其中$c_j$为第$j$组的计数，实验中衰变参数$λ &#x3D; 0.999$。</p>
+<h2 id="对离散隐变量进行扫描，进行并行序列解码"><a href="#对离散隐变量进行扫描，进行并行序列解码" class="headerlink" title="对离散隐变量进行扫描，进行并行序列解码"></a>对离散隐变量进行扫描，进行并行序列解码</h2><p>如下图所示，Latent-GLAT主要由一个编码器$F_{ENC}$（NAT编码器），一个潜在的预测器$F_{LP}$（NAT预测器），一个解码器$F_{DEC}$（Mix. Decoder）组成。<br><img src="/images/article/latent-glat/latent-GLAT1.png" alt="模型图"></p>
+<p>该模型类似于Transformer使用多头注意力编码器或解码器对它们进行参数化。它们的函数可以形式化为：</p>
+<p>$$<br>\begin{aligned}<br>(e_1, e_2, · · · , e_n) &amp; \leftarrow F_{ENC}(x_1, x_2, · · · , x_n), \\<br>(h_1, h_2, · · · , h_m) &amp;\leftarrow softcopy(e_{1:n}), \\<br>p_θ(z|X) &amp;\leftarrow F_{LP}(h_{1:m}, e_{1:n}), \\<br>p_θ(Y |z, X) &amp;\leftarrow F_{DEC}(z_{1:m}, h_{1:m}, e_{1:n}),\\<br>\end{aligned}<br>$$<br>其中，模型使用一个额外的模块$F_{LEN}$来预测目标长度$m$，并使用软拷贝机制初始化解码器输入$H &#x3D; ( h_1 , h_2 , · · · , h_m)$。</p>
+<p>对离散隐变量进行扫描，进行并行序列解码。<br>使用较少的离散潜变量( K &lt; 128)能够捕获目标词的高层类别信息，为并行序列解码提供更好的学习设计。</p>
+<p>模型以非自回归的方式对$F_{LP}$进行参数化，并使用glancing训练技术（Glancing Training ，GLT）对其进行优化，如下图所示：<br><img src="/images/article/latent-glat/latent_GLAT2.png" alt="潜在预测器图"></p>
+<p>模型对句子进行建模是基于采样的潜变量$z_{obs}$而不是$z$,即glancing $z_{obs}$以优化$F_{DEC}$。如下图所示，作者最终使用单词来调用glancing训练来最小化$L_{WP}$，即通过最小化来优化$F_{DEC}$。<br><img src="/images/article/latent-glat/latent_GLAT3.png" alt="潜在预测器图"></p>
+<p>总损失包括潜变量预测、句子重构和长度预测损失：</p>
+<p>$$<br>L &#x3D; L_{WP}^{GLT} + L_{LP}^{GLT} + \alpha L_{LEN}<br>$$<br>其中$\alpha &#x3D; 0.1$是调节长度预测损失$L_{LEN}$的超参数。</p>
+<h2 id="推理"><a href="#推理" class="headerlink" title="推理"></a>推理</h2><p>推理阶段，latent-GLAT依次预测目标长度、潜变量和句子。对于目标长度，Latent-GLAT首先使用长度预测器$F_{LEN}$预测目标长度$m$。</p>
+<p>为了避免推断时有长度预测误差，Latent - GLAT将长度$m$扩大到一个范围(文献实验里的范围$[m-3 , · · · , m+2] $，共6个候选)。然后，对于每个候选而言，Latent-GLAT使用$argmax_z pθ(z|X))$预测潜变量$\hat{z}$，使用$argmax_Y pθ(Y|(z,X))$预测句子$\hat{Y}$。</p>
+<p>Latent - GLAT也对候选进行自我排序( self-重排序)，选择得分最高的输出：<br>$$<br>\hat{Y}&#x3D;\underset{Y}{argmax} p_{\theta}(Y|\hat{z},X)\cdot \gamma^{|Y|}<br>$$</p>
+<p>其中$\gamma$是避免长度偏差的长度惩罚比，$| Y |$表示$Y$的长度。</p>
+<h1 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h1><p>Latent-GLAT可以不借助知识蒸馏直接训练。具体来说，我们使用离散潜变量来捕获单词类别信息，并将原始目标分为潜变量建模和单词预测任务。然后，我们通过扫视训练学习每个任务，并鼓励模型建立对潜变量的依赖关系，这些潜变量具有比单词更少的模式，并且对目标句子的建模也有信息。在机器翻译、复述生成和对话生成任务上的实验结果验证了我们提出的隐式GLAT的有效性。</p>
+]]></content>
+      <categories>
+        <category>深度学习</category>
+      </categories>
+      <tags>
+        <tag>隐变量</tag>
+        <tag>文本生成</tag>
+        <tag>非自回归</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Fine-Grained Controllable Text Generation Using Non-Residual Prompting</title>
+    <url>/2024/06/02/Non-Residual%20Prompting/</url>
+    <content><![CDATA[<h1 id="文献信息"><a href="#文献信息" class="headerlink" title="文献信息"></a>文献信息</h1><ul>
+<li><strong>中文名字：</strong>  </li>
+<li><strong>文献作者：</strong> Fredrik Carlsson; Joey Öhman; Fangyu Liu; Severine Verlinden; Joakim Nivre; Magnus Sahlgren</li>
+<li><strong>发布时间：</strong> 2022</li>
+<li><strong>DOI：</strong> <a href="https://doi.org/10.18653/v1/2022.acl-long.471">10.18653&#x2F;v1&#x2F;2022.acl-long.471</a></li>
+<li><strong>发布于：</strong> Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)</li>
+</ul>
+<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>由于这种对可控文本生成的明显需求，最近的工作(见2.1节)探索了不同的方法来控制和约束CLM的生成过程。这方面的研究主要有两条线。较为传统的方法侧重于细粒度控制以及如何将生成过程控制在任意点，同时仍然坚持当前上下文。这往往是通过在每个解码步骤独立地修改预测的词汇分布来实现的。然而，这将CLM与控制方法解耦，禁止CLM进行相应规划的能力，从而严重限制了可制定的控制类型。</p>
+<p>第二种方法转而选择更具表现力和更高层次的控制，让CLM本身解释并将指令纳入文本生成。这通常是通过一个微调的目标，或者像目前常见的那样，通过将指令制定为文本上下文(简称提示语)来完成的。虽然这些方法具有表现力，但在控制特定点的生成方面比以前的方法效果差。这是由于提示符的影响力与提示符到下一个预测令牌(邹薇等, 2021)的距离负相关，使得对不相邻文本的提示变得困难。</p>
+<h1 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h1><p>为了弥合细粒度控制和提示表达能力之间的差距，我们提出了一种允许在整个生成过程中进行远程和独立提示的体系结构。该架构具有编码器-解码器设置，其中编码器通过一种新的非残差注意力模式影响解码器。除了对这种架构的好处进行理论论证之外，我们还提供了一种资源高效的自监督方法，用于将预训练的CLM转换为此设置。</p>
+<h1 id="模型"><a href="#模型" class="headerlink" title="模型"></a>模型</h1><p>NRP模型引入了一个提示模型，即一个单独的编码器来对提示信息进行解释编码，并生成位置不变的键值对。然后CLM通过非残差注意力机制来处理提示信息。位置不变性保证了指令在任意时间步都是同等适用的，并通过其键值对的额外移位实现。</p>
+<h2 id="非残差注意力机制"><a href="#非残差注意力机制" class="headerlink" title="非残差注意力机制"></a>非残差注意力机制</h2><p>为了在不同的时间步允许独立的提示，CLM计算了两个不同的信息流，分别为文本流和非残差流。文本流忽略提示模型，与CLM的正常自注意力相同，参与当前时间步和关注之前时间步的键值对。非残差流在文本流的基础上还关注提示模型的键值对并负责每个时间步的预测。如图所示：<br><img src="/images/article/nrp/NRPAttention.png" alt="NRP Attention"></p>
+<h1 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h1><h2 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h2><p>本文引入了非残差注意力的概念，并论证了如何利用非残差注意力来控制生成文本模型。此外，该工作还指出了缺乏开放可控的文本生成任务，需要模型也考虑给定的上下文。作者试图通过引入人工创建的$C^2GEN$数据集，引入语境化的词语包含任务来弥补这一缺陷。</p>
+<p>在$C^2GEN$和Common Gen上的实验结果清楚地表明，使用非残差提示模型增加了CLM的生成控制。与其他方法相比，该方法是最通用的，在所有测试的情况下都表现良好。</p>
+<h2 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h2><p><strong>实验结果1</strong>：</p>
+<p>关键词：kitchen bowl refrigerator table</p>
+<blockquote>
+<p>The kitchen has a refrigerator, an oven, and a table with chairs in the middle of it. There is also a bowl on top of the fridge that can be used as a sink or to wash dishes.</p>
+<p>The bathroom has two sinks: one for washing your hands and another for using the toilet. It also has a bathtub and shower stall.</p>
+<p>There are three beds in this house. The first bed is made out of wood, while the second bed is made out of stone. The third bed is made out of metal.</p>
+</blockquote>
+<p><strong>实验结果2</strong>： </p>
+<p>关键词：Charles love Hattie together</p>
+<blockquote>
+<p>The love story between Hattie and Charles is one of the most romantic love stories in American literature, as they fall in love with each other despite their different backgrounds. They meet when Hattie falls in love with a young man named George who she meets at an amusement park where he works as a clown. The two begin to fall for each other, but it soon becomes apparent that they are not meant to be together.</p>
+<p>Hattie’s mother disapproves of her daughter’s relationship with George because she believes him to be too much like his father. When Hattie tells her mother about George, however, she finds out that her mother was right all along: George isn’t just like his father; he’s more like his grandfather than his father ever was. This revelation causes Hattie to break up with George and move on with her life.</p>
+<p>Charles’ parents disapprove of his relationship with Hattie because they believe him to be too much like his father. When Hattie tells her mother about George, however, she finds out that her mother was right all along: George isn’t just like his father; he’s more like his grandfather than his father ever was. This revelation causes Hattie to break up with George and move on with her life. In the end, both Charles and Hattie decide to stay together and live happily ever after.</p>
+</blockquote>
+<p><strong>实验结果3</strong>：<br>关键词：bathroom sink hands toilet</p>
+<blockquote>
+<p>The victim’s hands and feet sink into the toilet bowl, while her head sinks down to the floor. She is then dragged out of the bathroom by a man who appears to be in his late 20s or early 30s.</p>
+<p>The video was posted on YouTube last week but has since been taken off the site after it sparked outrage online.</p>
+<p>Scroll down for video</p>
+<p>Shocking: The woman can be seen lying face-down on the ground as two men drag her out of the bathroom at an apartment complex (pictured) in New York City</p>
+<p>Innocent: Police say they have no reason to believe that this incident is anything other than what it appears to be - a robbery gone wrong</p>
+<p>Police are now investigating whether there may be more victims.</p>
+<p>‘We don’t know how many people were involved,’ said NYPD Chief of Detectives Robert Boyce. ‘It looks like it could’ve happened multiple times.’</p>
+<p>He added: ‘I’m not sure if we’re going to see any arrests yet because we haven’t gotten all the information from witnesses.’</p>
+<p>According to police, the suspect is described as being between 5ft 6in and 5ft 8ins tall with short black hair and brown eyes. He was wearing blue jeans and a white T-shirt when he entered the building.</p>
+</blockquote>
+<ol>
+<li>生成时间长</li>
+<li>在短文本（30个字符左右）生成效果很好，但在长文本方面，随着文本越长，控制效果越低，并且出现文本重复的情况。</li>
+<li>文本生成不具有多样性。</li>
+<li>长文本内容不是很发散，但中心思想与关键词无关。</li>
+</ol>
+]]></content>
+      <categories>
+        <category>深度学习</category>
+      </categories>
+      <tags>
+        <tag>隐变量</tag>
+        <tag>自回归</tag>
+        <tag>文本生成</tag>
+        <tag>可控文本生成</tag>
+        <tag>Prompt</tag>
+        <tag>细粒度</tag>
+      </tags>
+  </entry>
+</search>
