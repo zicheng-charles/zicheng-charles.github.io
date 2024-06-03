@@ -1,62 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>latent-GLAT:Glancing at Latent Variables for Parallel Text Generation</title>
-    <url>/2024/06/01/latent-GLAT/</url>
-    <content><![CDATA[<h1 id="文献信息"><a href="#文献信息" class="headerlink" title="文献信息"></a>文献信息</h1><ul>
-<li><strong>中文名字：</strong> Latent-Glat：对并行文本生成的潜在变量进行了研究</li>
-<li><strong>文献作者：</strong> Yu Bao; Hao Zhou; Shujian Huang; Dongqi Wang; Lihua Qian; Xinyu Dai; Jiajun Chen; Lei Li</li>
-<li><strong>发布时间：</strong> 2022</li>
-<li><strong>DOI：</strong> <a href="https://doi.org/10.18653/v1/2022.acl-long.575">10.18653&#x2F;v1&#x2F;2022.acl-long.575</a></li>
-<li><strong>发布于：</strong> Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)</li>
-</ul>
-<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>现有的非自回归Transformer模型（Non-Autoregressive Transformer, NAT）在翻译任务中取得了比自回归模型有竞争力的结果，但它们仍然需要自回归Transformer(Autoregressive Transformer, AT)作为教师进行训练，即序列级知识蒸馏。</p>
-<p>对这种现象公认的解释是多模态问题：每个输入在数据集中可能有多个有效输出，这将阻止NAT模型学习组织一致的输出。使用AT的输出进行训练可以直接绕过数据集中的多模态现象，有效提高模型的性能。然而，通过知识蒸馏来训练NAT模型是有限的。</p>
-<ul>
-<li>首先，它需要额外训练一个AT模型，这不可避免地扩大了训练成本。</li>
-<li>其次，很难保证教师(或AT)模型在所有文本生成设置中都能足够准确，这将成为学生NAT模型的瓶颈。</li>
-</ul>
-<h1 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h1><p>在本文中，作者提出了Latent-GLAT，它可以直接从原始数据集中学习，它借助”分而治之”的思想缓解了多模态问题，通过引入少量离散潜变量来捕获目标词类别信息，将原目标分为潜变量建模和句子重构。</p>
-<ul>
-<li>首先，类别信息可能比原始单词具有更少的多模态现象，因此可以不借助知识蒸馏直接学习。</li>
-<li>第二，词的类别信息对句子重构具有信息性。我们可以用这些离散的潜变量扩展扫视训练来对句子进行建模，鼓励模型建立对单词分类信息而不是单词的依赖关系，这更加稳健。</li>
-</ul>
-<h1 id="模型"><a href="#模型" class="headerlink" title="模型"></a>模型</h1><p>Latent-GLAT遵循Latent Transformer模型，但引入离散潜变量的Glancing训练。</p>
-<h2 id="引入离散潜变量对目标类别信息进行建模"><a href="#引入离散潜变量对目标类别信息进行建模" class="headerlink" title="引入离散潜变量对目标类别信息进行建模"></a>引入离散潜变量对目标类别信息进行建模</h2><p>设K为离散隐空间的大小，$[K]$表示集合${ 1,2,· · ·,K }$。对于每个目标句$Y &#x3D; ( y_1 , y_2 , · · · , y_m)$，我们使用一个相同长度的潜变量序列对其建模为:</p>
-<p>$$<br>p(Y|X)&#x3D;\sum_z p_{\theta}(z|X) \cdot \prod_{t&#x3D;1}^m p_{\theta}(y_t|z,X)<br>$$</p>
-<p>其中$z&#x3D;(z_1,z_2,· · ·,z_m)$,且$z_i\epsilon[K]$，$\theta$是模型参数。</p>
-<p>使用向量量化将目标句子离散化为潜变量，它通过将大量的原始向量表示划分为小的组来工作。给每个令牌$y_i$分配一个与它的表示距离最近的组$j\epsilon[k]$：</p>
-<p>$$z_i&#x3D;\underset{j \epsilon [k]}{argmin}||repr(y_i)-q_j||_2$$</p>
-<p>其中$q\epsilon R^{k \times d_{model}}$ ，$q$是maintained表示，$d_{model}$是它的维度。使用$repr(y_i)$作为$y_i$的嵌入表示。最后，对模型进行最小化训练。</p>
-<p>$$<br>L_{LT}&#x3D;L_{LP}+L_{wp}<br>$$</p>
-<p>其中，$L_{wp}$和$L_{Lp}$分别为单词$Y$和潜变量$z$的预测损失。</p>
-<p>maintained表示$q$在目标$tokens { y1，· · ·，yi，· · · } $的小批量数据上进行指数移动平均更新。</p>
-<p>$$<br>c_j \leftarrow \lambda_{c_j}+(1-\lambda)\sum_i 1[z_i&#x3D;j],\\<br>q_j \leftarrow \lambda_{q_j}+(1-\lambda)\sum_i \frac{1[z_i&#x3D;j]repr(y_i)}{c_j}<br>$$</p>
-<p>其中$c_j$为第$j$组的计数，实验中衰变参数$λ &#x3D; 0.999$。</p>
-<h2 id="对离散隐变量进行扫描，进行并行序列解码"><a href="#对离散隐变量进行扫描，进行并行序列解码" class="headerlink" title="对离散隐变量进行扫描，进行并行序列解码"></a>对离散隐变量进行扫描，进行并行序列解码</h2><p>如下图所示，Latent-GLAT主要由一个编码器$F_{ENC}$（NAT编码器），一个潜在的预测器$F_{LP}$（NAT预测器），一个解码器$F_{DEC}$（Mix. Decoder）组成。<br><img src="/images/article/latent-glat/latent-GLAT1.png" alt="模型图"></p>
-<p>该模型类似于Transformer使用多头注意力编码器或解码器对它们进行参数化。它们的函数可以形式化为：</p>
-<p>$$<br>\begin{aligned}<br>(e_1, e_2, · · · , e_n) &amp; \leftarrow F_{ENC}(x_1, x_2, · · · , x_n), \\<br>(h_1, h_2, · · · , h_m) &amp;\leftarrow softcopy(e_{1:n}), \\<br>p_θ(z|X) &amp;\leftarrow F_{LP}(h_{1:m}, e_{1:n}), \\<br>p_θ(Y |z, X) &amp;\leftarrow F_{DEC}(z_{1:m}, h_{1:m}, e_{1:n}),\\<br>\end{aligned}<br>$$<br>其中，模型使用一个额外的模块$F_{LEN}$来预测目标长度$m$，并使用软拷贝机制初始化解码器输入$H &#x3D; ( h_1 , h_2 , · · · , h_m)$。</p>
-<p>对离散隐变量进行扫描，进行并行序列解码。<br>使用较少的离散潜变量( K &lt; 128)能够捕获目标词的高层类别信息，为并行序列解码提供更好的学习设计。</p>
-<p>模型以非自回归的方式对$F_{LP}$进行参数化，并使用glancing训练技术（Glancing Training ，GLT）对其进行优化，如下图所示：<br><img src="/images/article/latent-glat/latent_GLAT2.png" alt="潜在预测器图"></p>
-<p>模型对句子进行建模是基于采样的潜变量$z_{obs}$而不是$z$,即glancing $z_{obs}$以优化$F_{DEC}$。如下图所示，作者最终使用单词来调用glancing训练来最小化$L_{WP}$，即通过最小化来优化$F_{DEC}$。<br><img src="/images/article/latent-glat/latent_GLAT3.png" alt="潜在预测器图"></p>
-<p>总损失包括潜变量预测、句子重构和长度预测损失：</p>
-<p>$$<br>L &#x3D; L_{WP}^{GLT} + L_{LP}^{GLT} + \alpha L_{LEN}<br>$$<br>其中$\alpha &#x3D; 0.1$是调节长度预测损失$L_{LEN}$的超参数。</p>
-<h2 id="推理"><a href="#推理" class="headerlink" title="推理"></a>推理</h2><p>推理阶段，latent-GLAT依次预测目标长度、潜变量和句子。对于目标长度，Latent-GLAT首先使用长度预测器$F_{LEN}$预测目标长度$m$。</p>
-<p>为了避免推断时有长度预测误差，Latent - GLAT将长度$m$扩大到一个范围(文献实验里的范围$[m-3 , · · · , m+2] $，共6个候选)。然后，对于每个候选而言，Latent-GLAT使用$argmax_z pθ(z|X))$预测潜变量$\hat{z}$，使用$argmax_Y pθ(Y|(z,X))$预测句子$\hat{Y}$。</p>
-<p>Latent - GLAT也对候选进行自我排序( self-重排序)，选择得分最高的输出：<br>$$<br>\hat{Y}&#x3D;\underset{Y}{argmax} p_{\theta}(Y|\hat{z},X)\cdot \gamma^{|Y|}<br>$$</p>
-<p>其中$\gamma$是避免长度偏差的长度惩罚比，$| Y |$表示$Y$的长度。</p>
-<h1 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h1><p>Latent-GLAT可以不借助知识蒸馏直接训练。具体来说，我们使用离散潜变量来捕获单词类别信息，并将原始目标分为潜变量建模和单词预测任务。然后，我们通过扫视训练学习每个任务，并鼓励模型建立对潜变量的依赖关系，这些潜变量具有比单词更少的模式，并且对目标句子的建模也有信息。在机器翻译、复述生成和对话生成任务上的实验结果验证了我们提出的隐式GLAT的有效性。</p>
-]]></content>
-      <categories>
-        <category>深度学习</category>
-      </categories>
-      <tags>
-        <tag>隐变量</tag>
-        <tag>文本生成</tag>
-        <tag>非自回归</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Fine-Grained Controllable Text Generation Using Non-Residual Prompting</title>
     <url>/2024/06/02/Non-Residual%20Prompting/</url>
     <content><![CDATA[<h1 id="文献信息"><a href="#文献信息" class="headerlink" title="文献信息"></a>文献信息</h1><ul>
@@ -110,12 +54,68 @@
         <category>深度学习</category>
       </categories>
       <tags>
-        <tag>隐变量</tag>
         <tag>自回归</tag>
+        <tag>隐变量</tag>
         <tag>文本生成</tag>
         <tag>可控文本生成</tag>
         <tag>Prompt</tag>
         <tag>细粒度</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>latent-GLAT:Glancing at Latent Variables for Parallel Text Generation</title>
+    <url>/2024/06/01/latent-GLAT/</url>
+    <content><![CDATA[<h1 id="文献信息"><a href="#文献信息" class="headerlink" title="文献信息"></a>文献信息</h1><ul>
+<li><strong>中文名字：</strong> Latent-Glat：对并行文本生成的潜在变量进行了研究</li>
+<li><strong>文献作者：</strong> Yu Bao; Hao Zhou; Shujian Huang; Dongqi Wang; Lihua Qian; Xinyu Dai; Jiajun Chen; Lei Li</li>
+<li><strong>发布时间：</strong> 2022</li>
+<li><strong>DOI：</strong> <a href="https://doi.org/10.18653/v1/2022.acl-long.575">10.18653&#x2F;v1&#x2F;2022.acl-long.575</a></li>
+<li><strong>发布于：</strong> Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)</li>
+</ul>
+<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>现有的非自回归Transformer模型（Non-Autoregressive Transformer, NAT）在翻译任务中取得了比自回归模型有竞争力的结果，但它们仍然需要自回归Transformer(Autoregressive Transformer, AT)作为教师进行训练，即序列级知识蒸馏。</p>
+<p>对这种现象公认的解释是多模态问题：每个输入在数据集中可能有多个有效输出，这将阻止NAT模型学习组织一致的输出。使用AT的输出进行训练可以直接绕过数据集中的多模态现象，有效提高模型的性能。然而，通过知识蒸馏来训练NAT模型是有限的。</p>
+<ul>
+<li>首先，它需要额外训练一个AT模型，这不可避免地扩大了训练成本。</li>
+<li>其次，很难保证教师(或AT)模型在所有文本生成设置中都能足够准确，这将成为学生NAT模型的瓶颈。</li>
+</ul>
+<h1 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h1><p>在本文中，作者提出了Latent-GLAT，它可以直接从原始数据集中学习，它借助”分而治之”的思想缓解了多模态问题，通过引入少量离散潜变量来捕获目标词类别信息，将原目标分为潜变量建模和句子重构。</p>
+<ul>
+<li>首先，类别信息可能比原始单词具有更少的多模态现象，因此可以不借助知识蒸馏直接学习。</li>
+<li>第二，词的类别信息对句子重构具有信息性。我们可以用这些离散的潜变量扩展扫视训练来对句子进行建模，鼓励模型建立对单词分类信息而不是单词的依赖关系，这更加稳健。</li>
+</ul>
+<h1 id="模型"><a href="#模型" class="headerlink" title="模型"></a>模型</h1><p>Latent-GLAT遵循Latent Transformer模型，但引入离散潜变量的Glancing训练。</p>
+<h2 id="引入离散潜变量对目标类别信息进行建模"><a href="#引入离散潜变量对目标类别信息进行建模" class="headerlink" title="引入离散潜变量对目标类别信息进行建模"></a>引入离散潜变量对目标类别信息进行建模</h2><p>设K为离散隐空间的大小，$[K]$表示集合${ 1,2,· · ·,K }$。对于每个目标句$Y &#x3D; ( y_1 , y_2 , · · · , y_m)$，我们使用一个相同长度的潜变量序列对其建模为:</p>
+<p>$$<br>p(Y|X)&#x3D;\sum_z p_{\theta}(z|X) \cdot \prod_{t&#x3D;1}^m p_{\theta}(y_t|z,X)<br>$$</p>
+<p>其中$z&#x3D;(z_1,z_2,· · ·,z_m)$,且$z_i\epsilon[K]$，$\theta$是模型参数。</p>
+<p>使用向量量化将目标句子离散化为潜变量，它通过将大量的原始向量表示划分为小的组来工作。给每个令牌$y_i$分配一个与它的表示距离最近的组$j\epsilon[k]$：</p>
+<p>$$z_i&#x3D;\underset{j \epsilon [k]}{argmin}||repr(y_i)-q_j||_2$$</p>
+<p>其中$q\epsilon R^{k \times d_{model}}$ ，$q$是maintained表示，$d_{model}$是它的维度。使用$repr(y_i)$作为$y_i$的嵌入表示。最后，对模型进行最小化训练。</p>
+<p>$$<br>L_{LT}&#x3D;L_{LP}+L_{wp}<br>$$</p>
+<p>其中，$L_{wp}$和$L_{Lp}$分别为单词$Y$和潜变量$z$的预测损失。</p>
+<p>maintained表示$q$在目标$tokens { y1，· · ·，yi，· · · } $的小批量数据上进行指数移动平均更新。</p>
+<p>$$<br>c_j \leftarrow \lambda_{c_j}+(1-\lambda)\sum_i 1[z_i&#x3D;j],\\<br>q_j \leftarrow \lambda_{q_j}+(1-\lambda)\sum_i \frac{1[z_i&#x3D;j]repr(y_i)}{c_j}<br>$$</p>
+<p>其中$c_j$为第$j$组的计数，实验中衰变参数$λ &#x3D; 0.999$。</p>
+<h2 id="对离散隐变量进行扫描，进行并行序列解码"><a href="#对离散隐变量进行扫描，进行并行序列解码" class="headerlink" title="对离散隐变量进行扫描，进行并行序列解码"></a>对离散隐变量进行扫描，进行并行序列解码</h2><p>如下图所示，Latent-GLAT主要由一个编码器$F_{ENC}$（NAT编码器），一个潜在的预测器$F_{LP}$（NAT预测器），一个解码器$F_{DEC}$（Mix. Decoder）组成。<br><img src="/images/article/latent-glat/latent-GLAT1.png" alt="模型图"></p>
+<p>该模型类似于Transformer使用多头注意力编码器或解码器对它们进行参数化。它们的函数可以形式化为：</p>
+<p>$$<br>\begin{aligned}<br>(e_1, e_2, · · · , e_n) &amp; \leftarrow F_{ENC}(x_1, x_2, · · · , x_n), \\<br>(h_1, h_2, · · · , h_m) &amp;\leftarrow softcopy(e_{1:n}), \\<br>p_θ(z|X) &amp;\leftarrow F_{LP}(h_{1:m}, e_{1:n}), \\<br>p_θ(Y |z, X) &amp;\leftarrow F_{DEC}(z_{1:m}, h_{1:m}, e_{1:n}),\\<br>\end{aligned}<br>$$<br>其中，模型使用一个额外的模块$F_{LEN}$来预测目标长度$m$，并使用软拷贝机制初始化解码器输入$H &#x3D; ( h_1 , h_2 , · · · , h_m)$。</p>
+<p>对离散隐变量进行扫描，进行并行序列解码。<br>使用较少的离散潜变量( K &lt; 128)能够捕获目标词的高层类别信息，为并行序列解码提供更好的学习设计。</p>
+<p>模型以非自回归的方式对$F_{LP}$进行参数化，并使用glancing训练技术（Glancing Training ，GLT）对其进行优化，如下图所示：<br><img src="/images/article/latent-glat/latent_GLAT2.png" alt="潜在预测器图"></p>
+<p>模型对句子进行建模是基于采样的潜变量$z_{obs}$而不是$z$,即glancing $z_{obs}$以优化$F_{DEC}$。如下图所示，作者最终使用单词来调用glancing训练来最小化$L_{WP}$，即通过最小化来优化$F_{DEC}$。<br><img src="/images/article/latent-glat/latent_GLAT3.png" alt="潜在预测器图"></p>
+<p>总损失包括潜变量预测、句子重构和长度预测损失：</p>
+<p>$$<br>L &#x3D; L_{WP}^{GLT} + L_{LP}^{GLT} + \alpha L_{LEN}<br>$$<br>其中$\alpha &#x3D; 0.1$是调节长度预测损失$L_{LEN}$的超参数。</p>
+<h2 id="推理"><a href="#推理" class="headerlink" title="推理"></a>推理</h2><p>推理阶段，latent-GLAT依次预测目标长度、潜变量和句子。对于目标长度，Latent-GLAT首先使用长度预测器$F_{LEN}$预测目标长度$m$。</p>
+<p>为了避免推断时有长度预测误差，Latent - GLAT将长度$m$扩大到一个范围(文献实验里的范围$[m-3 , · · · , m+2] $，共6个候选)。然后，对于每个候选而言，Latent-GLAT使用$argmax_z pθ(z|X))$预测潜变量$\hat{z}$，使用$argmax_Y pθ(Y|(z,X))$预测句子$\hat{Y}$。</p>
+<p>Latent - GLAT也对候选进行自我排序( self-重排序)，选择得分最高的输出：<br>$$<br>\hat{Y}&#x3D;\underset{Y}{argmax} p_{\theta}(Y|\hat{z},X)\cdot \gamma^{|Y|}<br>$$</p>
+<p>其中$\gamma$是避免长度偏差的长度惩罚比，$| Y |$表示$Y$的长度。</p>
+<h1 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h1><p>Latent-GLAT可以不借助知识蒸馏直接训练。具体来说，我们使用离散潜变量来捕获单词类别信息，并将原始目标分为潜变量建模和单词预测任务。然后，我们通过扫视训练学习每个任务，并鼓励模型建立对潜变量的依赖关系，这些潜变量具有比单词更少的模式，并且对目标句子的建模也有信息。在机器翻译、复述生成和对话生成任务上的实验结果验证了我们提出的隐式GLAT的有效性。</p>
+]]></content>
+      <categories>
+        <category>深度学习</category>
+      </categories>
+      <tags>
+        <tag>隐变量</tag>
+        <tag>文本生成</tag>
+        <tag>非自回归</tag>
       </tags>
   </entry>
 </search>
