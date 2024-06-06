@@ -70,26 +70,26 @@
 <p>恢复码保存后，需要进行双因素身份验证，具体方法是在账户设置中找到Add 2FA with authentication application，点击进入得到一个TOTP应用码。如下图所示:</p>
 <p><img src="/images/article/pythonPackagingTutorial/2fa.jpg" alt="alt text"></p>
 <p>然后安装python第三方库pyotp</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">pip install pyotp</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pip install pyotp</span><br></pre></td></tr></table></figure>
 
 <p>创建个py文件，将下面代码复制py文件中，并将代码中的code替换TOTP应用码</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">import</span> pyotp</span><br><span class="line"></span><br><span class="line">code = <span class="string">&#x27;TOTP应用码&#x27;</span></span><br><span class="line">totp = pyotp.TOTP(code)</span><br><span class="line"><span class="built_in">print</span>(totp.now())</span><br></pre></td></tr></table></figure>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> pyotp</span><br><span class="line"></span><br><span class="line">code = <span class="string">&#x27;TOTP应用码&#x27;</span></span><br><span class="line">totp = pyotp.TOTP(code)</span><br><span class="line"><span class="built_in">print</span>(totp.now())</span><br></pre></td></tr></table></figure>
 
 <p>运行输出后可得验证码，输入完成验证。</p>
 <h1 id="构建项目"><a href="#构建项目" class="headerlink" title="构建项目"></a>构建项目</h1><h2 id="环境"><a href="#环境" class="headerlink" title="环境"></a>环境</h2><p>创建虚拟环境，</p>
 <p>创建好虚拟环境后输入以下命令</p>
 <p>更新build和pip的，build用于打包</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">pip install --upgrade pip</span><br><span class="line">pip install --upgrade build</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pip install --upgrade pip</span><br><span class="line">pip install --upgrade build</span><br></pre></td></tr></table></figure>
 
 <p>安装twine库用于上传包</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">pip install --upgrade twine</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pip install --upgrade twine</span><br></pre></td></tr></table></figure>
 
 <p>安装pytest用于后续的测试</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">pip install --upgrade pytest</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">pip install --upgrade pytest</span><br></pre></td></tr></table></figure>
 
 
 <h2 id="创建文件夹"><a href="#创建文件夹" class="headerlink" title="创建文件夹"></a>创建文件夹</h2><p>按下面的结构创建文件夹，其中packaging为项目名，没有要求，doc用于存放官方文档，test用于存放项目测试文件，package_name为包名，也是期望发布pypi的模块包名，可以先去pypi官网去搜索包名，验证是否已经存在。以下内容中若带有package_name，一律可以替换成自己的包名。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">packaging/</span><br><span class="line">    └── doc/</span><br><span class="line">    └── src/</span><br><span class="line">        └── package_name/</span><br><span class="line">    └── tests/</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">packaging/</span><br><span class="line">    └── doc/</span><br><span class="line">    └── src/</span><br><span class="line">        └── package_name/</span><br><span class="line">    └── tests/</span><br></pre></td></tr></table></figure>
 
 <h2 id="创建pyproject-toml"><a href="#创建pyproject-toml" class="headerlink" title="创建pyproject.toml"></a>创建pyproject.toml</h2><p>pyproject.toml是一个配置文件，可由打包工具以及其他工具（如linter、type checkers等）使用。具体教程可以看官方文档：<a href="https://packaging.python.org/en/latest/guides/writing-pyproject-toml/%E3%80%82">https://packaging.python.org/en/latest/guides/writing-pyproject-toml/。</a></p>
 <p>这里只需在根目录下创建pyproject.toml并将下面的内容粘贴并替换成自己想要的，其中依赖的详情语法参考：<a href="https://packaging.python.org/en/latest/specifications/dependency-specifiers/#dependency-specifiers">https://packaging.python.org/en/latest/specifications/dependency-specifiers/#dependency-specifiers</a></p>
@@ -100,21 +100,20 @@
 <li>在根目录下创建LICENSE.txt文件，在<a href="https://choosealicense.com/">https://choosealicense.com</a> 中选择想要的LICENSE，复制粘贴。</li>
 <li>在根目录下创建README.md文件。</li>
 <li>在src&#x2F;package_name&#x2F;example下创建__init__.py文件和example.py文件</li>
-<li>在src&#x2F;package_name&#x2F;example下创建VERSION文件，并写上0.0.1，意为版本号</li>
 <li>在tests文件下创建__init__.py文件和test_example.py文件</li>
 </ul>
 <p>最终的目录结构如下</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">packaging</span><br><span class="line">│  License.txt</span><br><span class="line">│  pyproject.toml</span><br><span class="line">│  README.md</span><br><span class="line">├─doc</span><br><span class="line">├─src</span><br><span class="line">│  └─OneGen</span><br><span class="line">│     example.py</span><br><span class="line">│     __init__.py</span><br><span class="line">│     VERSION</span><br><span class="line">│</span><br><span class="line">└─tests</span><br><span class="line">    test_example.py</span><br><span class="line">    __init__.py</span><br></pre></td></tr></table></figure>
-
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">packaging</span><br><span class="line">│  License.txt</span><br><span class="line">│  pyproject.toml</span><br><span class="line">│  README.md</span><br><span class="line">├─doc</span><br><span class="line">├─src</span><br><span class="line">│  └─package_name</span><br><span class="line">│     example.py</span><br><span class="line">│     __init__.py</span><br><span class="line">│     VERSION</span><br><span class="line">│</span><br><span class="line">└─tests</span><br><span class="line">    test_example.py</span><br><span class="line">    __init__.py</span><br></pre></td></tr></table></figure>
+<p>在package_name&#x2F;<strong>init</strong>.py中加入VERSION&#x3D;”0.0.1”</p>
 <p>将下面的代码粘贴到example.py中。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add_one</span>(<span class="params">number</span>):</span><br><span class="line">    <span class="keyword">return</span> number + <span class="number">1</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">add_one</span>(<span class="params">number</span>):</span><br><span class="line">    <span class="keyword">return</span> number + <span class="number">1</span></span><br></pre></td></tr></table></figure>
 
 <p>将下面的代码粘贴到test_example.py文件中，注：package_name要替换掉自己src路径下的包名。</p>
 <figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> pytest</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> package_name.example <span class="keyword">import</span> add_one</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">TestExample</span>():</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">test_add_one</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">assert</span> add_one(<span class="number">5</span>)==<span class="number">6</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    pytest.main()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
 
 <p>在终端的根目录下输入pytest，查看是否运行成功。</p>
 <h1 id="打包上传"><a href="#打包上传" class="headerlink" title="打包上传"></a>打包上传</h1><p>在终端的根目录下输入以下命令来进行打包。</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">python -m build </span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">python -m build </span><br></pre></td></tr></table></figure>
 
 <p>完成后，在根目录的下面会生成dist文件夹，下面有分别有.whl和.tar.gz两个文件</p>
 <blockquote>
@@ -130,10 +129,10 @@
 
 
 <p>上传发布到pypi的命令：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">twine upload --repository pypi dist/*</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">twine upload --repository pypi dist/*</span><br></pre></td></tr></table></figure>
 
 <p> 上传发布到test-pypi的命令：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">twine upload --repository testpypi dist/*</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">twine upload --repository testpypi dist/*</span><br></pre></td></tr></table></figure>
 
 <p>注：如果提示输入api token，则说明twine没有识别到.pypirc。解决办法就是在命令后面加上–config-file &#x2F;路径&#x2F;.pypirc</p>
 <p>如果有以下提示，则输入对应平台的账号密码<br><img src="/images/article/pythonPackagingTutorial/image-3.png" alt="alt text"></p>
