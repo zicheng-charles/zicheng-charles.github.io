@@ -3,10 +3,11 @@ home: true
 layout: BlogHome
 icon: home
 title: 博客主页
-heroImage: https://theme-hope-assets.vuejs.press/logo.svg
-heroText: 你博客的名称
+
+bgImage: .vuepress/public/background.webp
+heroText: Charles's Blog
 heroFullScreen: true
-tagline: 你可以在这里放置你的口号与标语
+tagline: 一点一点来，一点一点学，不求甚解，求知若渴。
 projects:
   - icon: project
     name: 项目名称

@@ -18,6 +18,7 @@ export default hopeTheme({
   repo: "vuepress-theme-hope/vuepress-theme-hope",
 
   docsDir: "src",
+  darkmode: "switch",
 
   // 导航栏
   navbar,
