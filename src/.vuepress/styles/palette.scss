@@ -1,1 +1,12 @@
 // you can change colors here
+@font-face {
+    font-family:sanjijin;
+    src:url("../public/SanJiJinSongJianTi-Cu-2.ttf");
+}
+@font-face {
+    font-family:yousheyu;
+    src:url("../public/YouSheYuFeiTeJianKangTi-2.ttf");
+}
+
+$vp-font-heading: "yousheyu";
+// $vp-font: "yousheyu"
