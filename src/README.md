@@ -2,9 +2,9 @@
 home: true
 layout: BlogHome
 icon: home
-title: 博客主页
+title: 主页
 
-bgImage: .vuepress/public/background.webp
+bgImage: background.webp
 heroText: Charles's Blog
 heroFullScreen: true
 tagline: 一点一点来，一点一点学，不求甚解，求知若渴。
